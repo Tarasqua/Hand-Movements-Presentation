@@ -19,16 +19,20 @@ class ControlFingers:
     POINT_FINGER = [0, 1, 1, 0, 0]  # index finger
     DRAW_FINGER = [0, 1, 0, 0, 0]  # index and middle fingers
     ERASE_FINGER = [1, 1, 1, 1, 1]  # all fingers of the hand
+    CHANGE_COLOR_FINGER = [0, 1, 1, 1, 0]  # index, middle and ring
     EXIT_FINGER = [0, 0, 1, 1, 1]  # middle, ring and pinky
-    POINTER_COLOR = (0, 255, 0)
-    POINTER_THICKNESS = 8
+
+    POINTER_COLORS = [(255, 0, 0), (0, 255, 0), (0, 0, 255)]  # Main pointer colors
+    POINTER_THICKNESS = 8  # Main pointer thickness
 
 
 class Delay:
+    """Delay."""
     MAIN_DELAY = 20
 
 
 class MessageBoxNotification:
+    """Message box notifications - titles and messages."""
     ERROR_TITLE = 'Error'
     TYPE_ERROR_MESSAGE = 'Folder not selected. Try again.'
     ATTRIBUTE_ERROR_MESSAGE = 'Wrong folder selected. Try again.'

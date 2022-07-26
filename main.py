@@ -13,27 +13,27 @@ from misc import Delay, Display, ControlLine, ControlFingers, MessageBoxNotifica
 
 def choose_directory(title: str):
     """
-    The initial window for selecting a directory with slides
-    :return: Path to directory
+    The initial window for selecting a directory with slides.
+    :return: Path to directory.
     """
     directory = fd.askdirectory(title=title, initialdir='/')
     if directory:
         return directory
 
 
-def clear_space():
+def clear_space(colors: list, annotations: dict, annotation_numbers: dict, annotation_starts: dict):
     """
     Clears the slide of drawings.
-    :return: Reference values of ANNOTATIONS, ANNOTATION_NUMBER, ANNOTATION_START
+    :return: Reference values of ANNOTATIONS, ANNOTATION_NUMBERS, ANNOTATION_STARTS.
     """
-    annotations = [[]]  # [[]] - To draw each line separately, independently of the previous one
-    annotation_number = 0
-    flag = False
-    return annotations, annotation_number, flag
+    for color_number in range(len(colors)):
+        annotations[color_number] = [[]]  # [[]] - To draw each line separately, independently of the previous one
+        annotation_numbers[color_number] = 0
+        annotation_starts[color_number] = False
+    return annotations, annotation_numbers, annotation_starts
 
 
 # Variables
-
 # Choose main directory
 mb.showinfo(title=MessageBoxNotification.INFO_FOLDER_TITLE, message=MessageBoxNotification.INFO_FOLDER_MESSAGE)
 DIRECTORY_PATH = choose_directory(title=MessageBoxNotification.INFO_FOLDER_TITLE)
@@ -47,9 +47,17 @@ SLIDE_SWITCHED = False
 SLIDE_COUNTER = 0
 
 # The list for storing and changing drawn points
-ANNOTATIONS, ANNOTATION_NUMBER, ANNOTATION_START = clear_space()
-
-# Break presentation flag
+COLOR_NUMBER = 0
+# ANNOTATIONS - where the coordinates of each line of the drawing will be recorded under a specific key = color number
+# They are necessary to separate the lines from each other:
+# ANNOTATION_NUMBERS - each line has its own number (the same key)
+# ANNOTATION_STARTS - indicates that the construction of a particular line has ended
+ANNOTATIONS, ANNOTATION_NUMBERS, ANNOTATION_STARTS = {}, {}, {}
+ANNOTATIONS, ANNOTATION_NUMBERS, ANNOTATION_STARTS = clear_space(colors=ControlFingers.POINTER_COLORS,
+                                                                 annotations=ANNOTATIONS,
+                                                                 annotation_numbers=ANNOTATION_NUMBERS,
+                                                                 annotation_starts=ANNOTATION_STARTS)
+# Break presentation flag and image
 EXIT_FLAG = False
 EXIT_IMG = cv2.imread(Display.EXIT_IMAGE)
 
@@ -105,58 +113,74 @@ while True:
             if fingers == ControlFingers.PREVIOUS_SLIDE_FINGER:
                 if IMAGE_NUMBER > 0:
                     SLIDE_SWITCHED = True
-                    # Clear the space when we move to another slide
-                    ANNOTATIONS, ANNOTATION_NUMBER, ANNOTATION_START = clear_space()
+                    # Clear the space when we move to the previous slide
+                    ANNOTATIONS, ANNOTATION_NUMBERS, ANNOTATION_STARTS = \
+                        clear_space(colors=ControlFingers.POINTER_COLORS, annotations=ANNOTATIONS,
+                                    annotation_numbers=ANNOTATION_NUMBERS, annotation_starts=ANNOTATION_STARTS)
                     IMAGE_NUMBER -= 1
 
             # Gesture 2 - forward (next slide)
             if fingers == ControlFingers.NEXT_SLIDE_FINGER:
                 if IMAGE_NUMBER < len(IMAGES_PATH_LIST) - 1:
                     SLIDE_SWITCHED = True
-                    ANNOTATIONS, ANNOTATION_NUMBER, ANNOTATION_START = clear_space()
+                    # Clear the space when we move to the next slide
+                    ANNOTATIONS, ANNOTATION_NUMBERS, ANNOTATION_STARTS = \
+                        clear_space(colors=ControlFingers.POINTER_COLORS, annotations=ANNOTATIONS,
+                                    annotation_numbers=ANNOTATION_NUMBERS, annotation_starts=ANNOTATION_STARTS)
                     IMAGE_NUMBER += 1
 
             # Gesture 7 - exit
             if fingers == ControlFingers.EXIT_FINGER:
                 current_img[0:Display.MAIN_HEIGHT, 0:Display.MAIN_WIDTH] = EXIT_IMG
-                ANNOTATIONS, ANNOTATION_NUMBER, ANNOTATION_START = clear_space()
+                # Clear the space when we want to leave (not necessarily going out)
+                ANNOTATIONS, ANNOTATION_NUMBERS, ANNOTATION_STARTS = \
+                    clear_space(colors=ControlFingers.POINTER_COLORS, annotations=ANNOTATIONS,
+                                annotation_numbers=ANNOTATION_NUMBERS, annotation_starts=ANNOTATION_STARTS)
                 EXIT_FLAG = True
 
         # Gesture 3 - show pointer
         if fingers == ControlFingers.POINT_FINGER:
             cv2.circle(img=current_img, center=index_finger, radius=ControlFingers.POINTER_THICKNESS,
-                       color=ControlFingers.POINTER_COLOR, thickness=cv2.FILLED)
+                       color=ControlFingers.POINTER_COLORS[COLOR_NUMBER], thickness=cv2.FILLED)
 
         # Gesture 4 - draw pointer
         if fingers == ControlFingers.DRAW_FINGER:
             # Making separate containers
-            if ANNOTATION_START is False:
-                ANNOTATION_START = True
-                ANNOTATION_NUMBER += 1
-                ANNOTATIONS.append([])
-            cv2.circle(img=current_img, center=index_finger, radius=8,
-                       color=ControlFingers.POINTER_COLOR, thickness=cv2.FILLED)
+            if ANNOTATION_STARTS[COLOR_NUMBER] is False:
+                ANNOTATION_STARTS[COLOR_NUMBER] = True
+                ANNOTATION_NUMBERS[COLOR_NUMBER] += 1
+                ANNOTATIONS[COLOR_NUMBER].append([])
+            cv2.circle(img=current_img, center=index_finger, radius=ControlFingers.POINTER_THICKNESS,
+                       color=ControlFingers.POINTER_COLORS[COLOR_NUMBER], thickness=cv2.FILLED)
             # Adding points to that container
-            ANNOTATIONS[ANNOTATION_NUMBER].append(index_finger)
+            ANNOTATIONS[COLOR_NUMBER][ANNOTATION_NUMBERS[COLOR_NUMBER]].append(index_finger)
         else:
             # Change the container so that we can then draw a new line when the fingers are raised again
-            ANNOTATION_START = False
+            ANNOTATION_STARTS[COLOR_NUMBER] = False
 
         # Gesture 5 - erase
         if fingers == ControlFingers.ERASE_FINGER:
-            if ANNOTATIONS and ANNOTATION_NUMBER >= 0:
-                ANNOTATIONS.pop(-1)  # Removes the last one
-                ANNOTATION_NUMBER -= 1
+            if ANNOTATIONS[COLOR_NUMBER] and ANNOTATION_NUMBERS[COLOR_NUMBER] >= 0:
+                ANNOTATIONS[COLOR_NUMBER].pop(-1)  # Removes the last one
+                ANNOTATION_NUMBERS[COLOR_NUMBER] -= 1
                 SLIDE_SWITCHED = True
 
+        # Gesture 6 - change color
+        if fingers == ControlFingers.CHANGE_COLOR_FINGER:
+            if COLOR_NUMBER < len(ControlFingers.POINTER_COLORS) - 1:
+                COLOR_NUMBER += 1
+            else:
+                COLOR_NUMBER = 0
+            SLIDE_SWITCHED = True  # Making a delay
+
     # Drawing points
-    for i in range(len(ANNOTATIONS)):
-        for j in range(len(ANNOTATIONS[i])):
+    for i in range(len(ANNOTATIONS[COLOR_NUMBER])):
+        for j in range(len(ANNOTATIONS[COLOR_NUMBER][i])):
             if j != 0:  # To avoid an error
                 cv2.line(img=current_img,
-                         pt1=ANNOTATIONS[i][j - 1],
-                         pt2=ANNOTATIONS[i][j],
-                         color=ControlFingers.POINTER_COLOR,
+                         pt1=ANNOTATIONS[COLOR_NUMBER][i][j - 1],
+                         pt2=ANNOTATIONS[COLOR_NUMBER][i][j],
+                         color=ControlFingers.POINTER_COLORS[COLOR_NUMBER],
                          thickness=ControlFingers.POINTER_THICKNESS)
 
     # Slide switched iterations (making delay)
