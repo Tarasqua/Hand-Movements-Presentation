@@ -4,33 +4,11 @@ import keyboard
 import numpy as np
 
 import tkinter.messagebox as mb
-import tkinter.filedialog as fd
 
 from cvzone.HandTrackingModule import HandDetector
 
 from misc import Delay, Display, ControlLine, ControlFingers, MessageBoxNotification
-
-
-def choose_directory(title: str):
-    """
-    The initial window for selecting a directory with slides.
-    :return: Path to directory.
-    """
-    directory = fd.askdirectory(title=title, initialdir='/')
-    if directory:
-        return directory
-
-
-def clear_space(colors: list, annotations: dict, annotation_numbers: dict, annotation_starts: dict):
-    """
-    Clears the slide of drawings.
-    :return: Reference values of ANNOTATIONS, ANNOTATION_NUMBERS, ANNOTATION_STARTS.
-    """
-    for color_number in range(len(colors)):
-        annotations[color_number] = [[]]  # [[]] - To draw each line separately, independently of the previous one
-        annotation_numbers[color_number] = 0
-        annotation_starts[color_number] = False
-    return annotations, annotation_numbers, annotation_starts
+from auxiliary_functions import clear_space, choose_directory
 
 
 # Variables
@@ -44,14 +22,10 @@ IMAGES_PATH_LIST = sorted(os.listdir(DIRECTORY_PATH), key=len)  # in case we hav
 
 # Slides switching delay
 SLIDE_SWITCHED = False
-SLIDE_COUNTER = 0
+SLIDE_NUMBER = 0
 
-# The list for storing and changing drawn points
+# Storing and changing drawn points
 COLOR_NUMBER = 0
-# ANNOTATIONS - where the coordinates of each line of the drawing will be recorded under a specific key = color number
-# They are necessary to separate the lines from each other:
-# ANNOTATION_NUMBERS - each line has its own number (the same key)
-# ANNOTATION_STARTS - indicates that the construction of a particular line has ended
 ANNOTATIONS, ANNOTATION_NUMBERS, ANNOTATION_STARTS = {}, {}, {}
 ANNOTATIONS, ANNOTATION_NUMBERS, ANNOTATION_STARTS = clear_space(colors=ControlFingers.POINTER_COLORS,
                                                                  annotations=ANNOTATIONS,
@@ -73,7 +47,6 @@ detector = HandDetector(detectionCon=0.5, maxHands=1)
 while True:
     # Importing images
     success, img = cap.read()
-    overlay = img.copy()
     img = cv2.flip(src=img, flipCode=1)
     try:
         full_image_path = os.path.join(DIRECTORY_PATH, IMAGES_PATH_LIST[IMAGE_NUMBER])
@@ -82,10 +55,12 @@ while True:
                      message=MessageBoxNotification.TYPE_ERROR_MESSAGE)
         break
     current_img = cv2.imread(full_image_path)
-
     hands, img = detector.findHands(img=img)
-    cv2.line(img=img, pt1=(0, ControlLine.GESTURE_THRESHOLD), pt2=(Display.MAIN_WIDTH, ControlLine.GESTURE_THRESHOLD),
-             color=ControlLine.GESTURE_THRESHOLD_COLOR, thickness=ControlLine.GESTURE_THRESHOLD_THICKNESS)
+    cv2.line(img=img, pt1=(0, ControlLine.GESTURE_THRESHOLD_MARGIN),
+             pt2=(Display.MAIN_WIDTH, ControlLine.GESTURE_THRESHOLD_MARGIN),
+             # The same color as the pointer to make it easier to navigate
+             color=ControlLine.POINTER_COLORS[COLOR_NUMBER],
+             thickness=ControlLine.GESTURE_THRESHOLD_THICKNESS)
 
     if hands and SLIDE_SWITCHED is False:
         hand = hands[0]
@@ -107,7 +82,7 @@ while True:
                       )  # landmark_list[8][1] - y index finger tip
         index_finger = x_value, y_value
 
-        if center_y <= ControlLine.GESTURE_THRESHOLD:  # if hand is at the height of the face
+        if center_y <= ControlLine.GESTURE_THRESHOLD_MARGIN:  # if hand is at the height of the face
 
             # Gesture 1 - back (previous slide)
             if fingers == ControlFingers.PREVIOUS_SLIDE_FINGER:
@@ -173,21 +148,22 @@ while True:
                 COLOR_NUMBER = 0
             SLIDE_SWITCHED = True  # Making a delay
 
-    # Drawing points
-    for i in range(len(ANNOTATIONS[COLOR_NUMBER])):
-        for j in range(len(ANNOTATIONS[COLOR_NUMBER][i])):
-            if j != 0:  # To avoid an error
-                cv2.line(img=current_img,
-                         pt1=ANNOTATIONS[COLOR_NUMBER][i][j - 1],
-                         pt2=ANNOTATIONS[COLOR_NUMBER][i][j],
-                         color=ControlFingers.POINTER_COLORS[COLOR_NUMBER],
-                         thickness=ControlFingers.POINTER_THICKNESS)
+    # Drawing points of all colors
+    for color in range(len(ControlFingers.POINTER_COLORS)):
+        for i in range(len(ANNOTATIONS[color])):
+            for j in range(len(ANNOTATIONS[color][i])):
+                if j != 0:  # To avoid an error
+                    cv2.line(img=current_img,
+                             pt1=ANNOTATIONS[color][i][j - 1],
+                             pt2=ANNOTATIONS[color][i][j],
+                             color=ControlFingers.POINTER_COLORS[color],
+                             thickness=ControlFingers.POINTER_THICKNESS)
 
     # Slide switched iterations (making delay)
     if SLIDE_SWITCHED:
-        SLIDE_COUNTER += 1
-        if SLIDE_COUNTER > Delay.MAIN_DELAY:
-            SLIDE_COUNTER = 0
+        SLIDE_NUMBER += 1
+        if SLIDE_NUMBER > Delay.MAIN_DELAY:
+            SLIDE_NUMBER = 0
             SLIDE_SWITCHED = False
 
     # Adding webcam image on the slides
@@ -203,13 +179,13 @@ while True:
     current_img[0:Display.SMALL_IMG_HEIGHT, Display.MAIN_WIDTH - Display.SMALL_IMG_WIDTH:Display.MAIN_WIDTH] \
         = webcam_img
 
-    cv2.imshow(winname='Image', mat=img)
-    cv2.imshow(winname='Slides', mat=current_img)
+    cv2.imshow(winname=Display.WEBCAM_IMAGE_TITLE, mat=img)
+    cv2.imshow(winname=Display.MAIN_IMAGE_TITLE, mat=current_img)
     cv2.waitKey(1)
 
     # Exit
     if EXIT_FLAG:
-        if keyboard.read_key() == 'esc':
+        if keyboard.read_key() == Display.EXIT_KEY:
             break
         else:
             EXIT_FLAG = False

@@ -3,13 +3,9 @@ class Display:
     MAIN_WIDTH, MAIN_HEIGHT = 1280, 720
     SMALL_IMG_WIDTH, SMALL_IMG_HEIGHT = 213, 120
     EXIT_IMAGE = 'exit_image.png'
-
-
-class ControlLine:
-    """Control line preferences."""
-    GESTURE_THRESHOLD = 350
-    GESTURE_THRESHOLD_COLOR = (0, 255, 0)
-    GESTURE_THRESHOLD_THICKNESS = 10
+    EXIT_KEY = 'esc'
+    MAIN_IMAGE_TITLE = 'Hand Movements Presentation'
+    WEBCAM_IMAGE_TITLE = 'Webcam'
 
 
 class ControlFingers:
@@ -22,8 +18,14 @@ class ControlFingers:
     CHANGE_COLOR_FINGER = [0, 1, 1, 1, 0]  # index, middle and ring
     EXIT_FINGER = [0, 0, 1, 1, 1]  # middle, ring and pinky
 
-    POINTER_COLORS = [(255, 0, 0), (0, 255, 0), (0, 0, 255)]  # Main pointer colors
+    POINTER_COLORS = [(255, 0, 0), (0, 255, 0), (0, 0, 255), (255, 0, 255)]  # Main pointer colors
     POINTER_THICKNESS = 8  # Main pointer thickness
+
+
+class ControlLine(ControlFingers):
+    """Control line preferences."""
+    GESTURE_THRESHOLD_MARGIN = 350
+    GESTURE_THRESHOLD_THICKNESS = 10
 
 
 class Delay:
