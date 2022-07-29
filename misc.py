@@ -1,22 +1,24 @@
 class Display:
     """Display preferences."""
     MAIN_WIDTH, MAIN_HEIGHT = 1280, 720
-    SMALL_IMG_WIDTH, SMALL_IMG_HEIGHT = 213, 120
-    EXIT_IMAGE = 'exit_image.png'
-    EXIT_KEY = 'esc'
+    EXIT_IMAGE = 'data/shutdown_window.png'
+    START_IMAGE = 'data/launch_window.png'
     MAIN_IMAGE_TITLE = 'Hand Movements Presentation'
     WEBCAM_IMAGE_TITLE = 'Webcam'
+    EXIT_KEY = 'e'
 
 
 class ControlFingers:
     """Control fingers preferences."""
     PREVIOUS_SLIDE_FINGER = [1, 0, 0, 0, 0]  # thumb
     NEXT_SLIDE_FINGER = [0, 0, 0, 0, 1]  # pinky finger
-    POINT_FINGER = [0, 1, 1, 0, 0]  # index finger
-    DRAW_FINGER = [0, 1, 0, 0, 0]  # index and middle fingers
-    ERASE_FINGER = [1, 1, 1, 1, 1]  # all fingers of the hand
-    CHANGE_COLOR_FINGER = [0, 1, 1, 1, 0]  # index, middle and ring
-    EXIT_FINGER = [0, 0, 1, 1, 1]  # middle, ring and pinky
+    POINT_FINGER = [0, 1, 1, 0, 0]  # index and middle finger
+    DRAW_FINGER = [0, 1, 0, 0, 0]  # index fingers
+    ERASE_FINGER = [0, 1, 1, 0, 1]  # index, middle and pinky
+    CHANGE_COLOR_FINGER = [1, 1, 1, 0, 0]  # index, middle and thumb
+    EXIT_FINGER = [1, 1, 1, 1, 1]  # middle, ring and pinky
+    EXIT_CONFIRM_FINGER = [0, 0, 1, 1, 1]  # middle, ring, pinky
+    EXIT_DECLINE_FINGER = [1, 0, 0, 0, 1]  # thumb and pinky
 
     POINTER_COLORS = [(255, 0, 0), (0, 255, 0), (0, 0, 255), (255, 0, 255)]  # Main pointer colors
     POINTER_THICKNESS = 8  # Main pointer thickness
@@ -30,7 +32,8 @@ class ControlLine(ControlFingers):
 
 class Delay:
     """Delay."""
-    MAIN_DELAY = 20
+    SLIDES_DELAY = 20
+    EXIT_DELAY = 50
 
 
 class MessageBoxNotification:
